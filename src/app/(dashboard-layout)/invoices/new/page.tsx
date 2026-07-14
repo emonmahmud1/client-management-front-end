@@ -176,7 +176,9 @@ const NewInvoicePage = () => {
 
       <ShareInvoiceModal
         open={openShare}
-        clientPhone={selectedClient?.phone ?? "+8801700000000"}
+        clientPhone={selectedClient?.phone ?? ""}
+        clientEmail={selectedClient?.email ?? ""}
+        clientName={selectedClient?.name ?? "Client"}
         invoiceId={latestInvoiceId}
         onClose={() => setOpenShare(false)}
       />

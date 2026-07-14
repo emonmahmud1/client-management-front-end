@@ -1,6 +1,4 @@
-import { ExpenseCategoryChart } from "@/app/(dashboard-layout)/expenses/_components/expense-category-chart";
 import { ExpenseListTable } from "@/app/(dashboard-layout)/expenses/_components/expense-list-table";
-import { ExpenseSummaryCards } from "@/app/(dashboard-layout)/expenses/_components/expense-summary-cards";
 
 const ExpensesPage = () => {
   return (
@@ -10,12 +8,6 @@ const ExpensesPage = () => {
         <p className="text-sm text-muted-foreground">
           Track operational costs, pending payouts, and category-level spending.
         </p>
-      </div>
-
-      <ExpenseSummaryCards />
-
-      <div>
-        <ExpenseCategoryChart />
       </div>
 
       <ExpenseListTable />
