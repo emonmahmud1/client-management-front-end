@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useState } from "react";
 import { SidebarNav } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -9,6 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setGlobalSearchQuery } from "@/store/slices/app-slice";
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export function TopNavbar() {
   const dispatch = useAppDispatch();
@@ -44,15 +53,17 @@ export function TopNavbar() {
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <button
-            className="inline-flex size-9 items-center justify-center rounded-md border border-border hover:bg-accent"
-            aria-label="Notifications"
-          >
-            <Bell className="size-4" />
-          </button>
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-semibold">{activeUser.name}</p>
-            <p className="text-xs text-muted-foreground">{activeUser.role}</p>
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+              title={activeUser.name}
+            >
+              {getInitials(activeUser.name)}
+            </div>
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-semibold leading-tight">{activeUser.name}</p>
+              <p className="text-xs text-muted-foreground">{activeUser.role}</p>
+            </div>
           </div>
         </div>
       </div>

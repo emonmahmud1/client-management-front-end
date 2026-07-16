@@ -4,9 +4,10 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
-  Line,
-  LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,8 +15,10 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
-import { monthlyProfitData } from "@/lib/mock-data/expenses-reports";
+import { expenseCategoryTotals, monthlyProfitData } from "@/lib/mock-data/expenses-reports";
 import { useAppSelector } from "@/store/hooks";
+
+const PIE_COLORS = ["#4f46e5", "#16a34a", "#0ea5e9", "#f97316", "#eab308"];
 
 export function ProfitOverviewChart() {
   const symbol = useAppSelector((state) => state.app.currencySymbol);
@@ -43,23 +46,23 @@ export function ProfitOverviewChart() {
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>Profit Trend</CardTitle>
+          <CardTitle>Expense by Category</CardTitle>
         </CardHeader>
         <CardContent className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthlyProfitData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" />
-              <YAxis />
+            <PieChart>
+              <Pie
+                data={expenseCategoryTotals}
+                dataKey="amount"
+                nameKey="category"
+                outerRadius={90}
+              >
+                {expenseCategoryTotals.map((item, index) => (
+                  <Cell key={item.category} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                ))}
+              </Pie>
               <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0), symbol)} />
-              <Line
-                type="monotone"
-                dataKey="profit"
-                stroke="#4f46e5"
-                strokeWidth={3}
-                dot={{ r: 4 }}
-              />
-            </LineChart>
+            </PieChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>

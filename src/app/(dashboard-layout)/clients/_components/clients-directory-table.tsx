@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownWideNarrow } from "lucide-react";
+import { AlertTriangle, ArrowDownWideNarrow, CheckCircle2, Eye } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,10 @@ type SortKey = "totalPurchase" | "outstandingDue";
 
 type ClientsDirectoryTableProps = {
   clients: Client[];
+  onStatusToggle?: (clientId: string) => void;
 };
 
-export function ClientsDirectoryTable({ clients }: ClientsDirectoryTableProps) {
+export function ClientsDirectoryTable({ clients, onStatusToggle }: ClientsDirectoryTableProps) {
   const symbol = useAppSelector((state) => state.app.currencySymbol);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("totalPurchase");
@@ -79,12 +80,25 @@ export function ClientsDirectoryTable({ clients }: ClientsDirectoryTableProps) {
                   </Badge>
                 </td>
                 <td className="px-3 py-2">
-                  <Link
-                    href={`/clients/${client.id}`}
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    View Profile
-                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => onStatusToggle?.(client.id)}
+                      title={client.status === "active" ? "Mark as Overdue" : "Mark as Active"}
+                    >
+                      {client.status === "active" ? (
+                        <AlertTriangle className="size-4 text-orange-500" />
+                      ) : (
+                        <CheckCircle2 className="size-4 text-emerald-600" />
+                      )}
+                    </Button>
+                    <Button variant="outline" size="icon" asChild title="View Profile">
+                      <Link href={`/clients/${client.id}`}>
+                        <Eye className="size-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
