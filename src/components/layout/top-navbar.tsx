@@ -54,16 +54,20 @@ export function TopNavbar() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <div className="flex items-center gap-2.5">
-            <div
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
-              title={activeUser.name}
-            >
-              {getInitials(activeUser.name)}
-            </div>
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold leading-tight">{activeUser.name}</p>
-              <p className="text-xs text-muted-foreground">{activeUser.role}</p>
-            </div>
+            {activeUser ? (
+              <>
+                <div
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+                  title={activeUser.name}
+                >
+                  {getInitials(activeUser.name)}
+                </div>
+                <div className="hidden text-right sm:block">
+                  <p className="text-sm font-semibold leading-tight">{activeUser.name}</p>
+                  <p className="text-xs text-muted-foreground">{activeUser.role}</p>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       </div>

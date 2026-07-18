@@ -10,29 +10,52 @@ type SidebarNavProps = {
   onNavigate?: () => void;
 };
 
+import { logout } from "@/store/slices/app-slice";
+import { useAppDispatch } from "@/store/hooks";
+import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
+
 export function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push("/login");
+  };
 
   return (
-    <nav className="space-y-1 p-3">
-      {sidebarLinks.map((link) => {
-        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground",
-              active && "bg-accent text-foreground",
-            )}
-          >
-            <link.icon className="size-4" />
-            {link.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="flex h-[calc(100vh-4rem)] flex-col justify-between">
+      <nav className="space-y-1 p-3">
+        {sidebarLinks.map((link) => {
+          const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground",
+                active && "bg-accent text-foreground",
+              )}
+            >
+              <link.icon className="size-4" />
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="p-3">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-500 transition hover:bg-red-500/10"
+        >
+          <LogOut className="size-4" />
+          Log out
+        </button>
+      </div>
+    </div>
   );
 }
 
