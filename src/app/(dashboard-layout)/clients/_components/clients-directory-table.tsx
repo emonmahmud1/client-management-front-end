@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowDownWideNarrow, CheckCircle2, Eye } from "lucide-react";
+import { AlertTriangle, ArrowDownWideNarrow, CheckCircle2, Eye, Banknote } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/format";
 import { Client } from "@/types/domain";
 import { useAppSelector } from "@/store/hooks";
+import { AddPaymentDialog } from "./add-payment-dialog";
 
 type SortKey = "totalPurchase" | "outstandingDue";
 
@@ -22,6 +23,7 @@ export function ClientsDirectoryTable({ clients, onStatusToggle }: ClientsDirect
   const symbol = useAppSelector((state) => state.app.currencySymbol);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("totalPurchase");
+  const [paymentClient, setPaymentClient] = useState<any>(null);
 
   const rows = useMemo(() => {
     const filtered = clients.filter((client) =>
@@ -75,7 +77,7 @@ export function ClientsDirectoryTable({ clients, onStatusToggle }: ClientsDirect
                 <td className="px-3 py-2">{formatCurrency(client.totalPurchase, symbol)}</td>
                 <td className="px-3 py-2">{formatCurrency(client.outstandingDue, symbol)}</td>
                 <td className="px-3 py-2">
-                  <Badge variant={client.status === "ACTIVE" ? "default" : "destructive"}>
+                  <Badge tone={client.status === "ACTIVE" ? "success" : "danger"}>
                     {client.status === "ACTIVE" ? "Active" : client.status === "OVERDUE" ? "Overdue" : client.status}
                   </Badge>
                 </td>
@@ -93,6 +95,16 @@ export function ClientsDirectoryTable({ clients, onStatusToggle }: ClientsDirect
                         <CheckCircle2 className="size-4 text-emerald-600" />
                       )}
                     </Button>
+                    {client.outstandingDue > 0 && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setPaymentClient(client)}
+                        title="Receive Payment"
+                      >
+                        <Banknote className="size-4 text-primary" />
+                      </Button>
+                    )}
                     <Button variant="outline" size="icon" asChild title="View Profile">
                       <Link href={`/clients/${client.id}`}>
                         <Eye className="size-4" />
@@ -105,6 +117,16 @@ export function ClientsDirectoryTable({ clients, onStatusToggle }: ClientsDirect
           </tbody>
         </table>
       </CardContent>
+
+      {paymentClient && (
+        <AddPaymentDialog
+          open={!!paymentClient}
+          onOpenChange={(open) => !open && setPaymentClient(null)}
+          clientId={paymentClient.id}
+          clientName={paymentClient.name}
+          outstandingDue={paymentClient.outstandingDue}
+        />
+      )}
     </Card>
   );
 }

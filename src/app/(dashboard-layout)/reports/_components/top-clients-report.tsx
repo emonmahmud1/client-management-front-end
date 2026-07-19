@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/format";
-import { clients } from "@/lib/mock-data/clients";
 import { useAppSelector } from "@/store/hooks";
+import { useGetClientsQuery } from "@/store/endpoints/clients-endpoints";
+import { Loader2 } from "lucide-react";
 
 export function TopClientsReport() {
   const symbol = useAppSelector((state) => state.app.currencySymbol);
-  const rows = [...clients].sort((a, b) => b.totalPurchase - a.totalPurchase);
+  
+  const { data: clientsData, isLoading } = useGetClientsQuery({});
+  const clientsList = clientsData?.data || clientsData || [];
+  
+  const rows = [...clientsList].sort((a, b) => b.totalPurchase - a.totalPurchase);
 
   const sendDueInvoice = (clientName: string, phone: string, due: number) => {
     if (due <= 0) {
@@ -45,26 +50,42 @@ export function TopClientsReport() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((client) => (
-              <tr key={client.id} className="border-t border-border">
-                <td className="px-3 py-2 font-medium">{client.name}</td>
-                <td className="px-3 py-2">{client.company}</td>
-                <td className="px-3 py-2">{formatCurrency(client.totalPurchase, symbol)}</td>
-                <td className="px-3 py-2">{formatCurrency(client.outstandingDue, symbol)}</td>
-                <td className="px-3 py-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    title="Send due invoice via WhatsApp"
-                    onClick={() =>
-                      sendDueInvoice(client.name, client.phone, client.outstandingDue)
-                    }
-                  >
-                    <Send className="size-4" />
-                  </Button>
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-10 text-center">
+                  <div className="flex justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
                 </td>
               </tr>
-            ))}
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">
+                  No clients available yet.
+                </td>
+              </tr>
+            ) : (
+              rows.map((client) => (
+                <tr key={client.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-medium">{client.name}</td>
+                  <td className="px-3 py-2">{client.company}</td>
+                  <td className="px-3 py-2">{formatCurrency(client.totalPurchase, symbol)}</td>
+                  <td className="px-3 py-2">{formatCurrency(client.outstandingDue, symbol)}</td>
+                  <td className="px-3 py-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      title="Send due invoice via WhatsApp"
+                      onClick={() =>
+                        sendDueInvoice(client.name, client.phone, client.outstandingDue)
+                      }
+                    >
+                      <Send className="size-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </CardContent>

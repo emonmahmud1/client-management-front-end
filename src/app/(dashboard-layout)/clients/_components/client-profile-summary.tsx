@@ -35,7 +35,7 @@ export function ClientProfileSummary({ client, currencySymbol }: ClientProfileSu
             {formatCurrency(client.outstandingDue ?? 0, currencySymbol)}
           </p>
         </div>
-        <Badge variant={client.status === "ACTIVE" ? "default" : "destructive"}>
+        <Badge tone={client.status === "ACTIVE" ? "success" : "danger"}>
           {client.status === "ACTIVE" ? "Active" : client.status === "OVERDUE" ? "Overdue" : client.status}
         </Badge>
       </CardContent>
