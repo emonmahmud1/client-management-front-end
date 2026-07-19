@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,11 +9,11 @@ import { ClientSelector } from "@/app/(dashboard-layout)/invoices/new/_component
 import { CreateClientModal } from "@/app/(dashboard-layout)/invoices/new/_components/create-client-modal";
 import { InvoiceItem, InvoiceItemsTable } from "@/app/(dashboard-layout)/invoices/new/_components/invoice-items-table";
 import { ShareInvoiceModal } from "@/app/(dashboard-layout)/invoices/new/_components/share-invoice-modal";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
-import { clients as initialClients } from "@/lib/mock-data/clients";
-import { Client } from "@/types/domain";
 import { useAppSelector } from "@/store/hooks";
+import { useGetClientsQuery, useCreateClientMutation } from "@/store/endpoints/clients-endpoints";
+import { useCreateInvoiceMutation } from "@/store/endpoints/invoices-endpoints";
 
 const createItem = (): InvoiceItem => ({
   id: crypto.randomUUID(),
@@ -23,30 +24,34 @@ const createItem = (): InvoiceItem => ({
 
 const NewInvoicePage = () => {
   const symbol = useAppSelector((state) => state.app.currencySymbol);
-  const [clients, setClients] = useState<Client[]>(initialClients);
-  const [selectedClientId, setSelectedClientId] = useState(initialClients[0]?.id ?? "");
+  const router = useRouter();
+
+  const { data: clients = [] } = useGetClientsQuery({});
+  const [createClientApi] = useCreateClientMutation();
+  const [createInvoice, { isLoading: isSaving }] = useCreateInvoiceMutation();
+
+  const [selectedClientId, setSelectedClientId] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([createItem()]);
   const [invoiceNote, setInvoiceNote] = useState("");
   const [openCreateClient, setOpenCreateClient] = useState(false);
   const [openShare, setOpenShare] = useState(false);
-  const [latestInvoiceId, setLatestInvoiceId] = useState("INV-100001");
-  const [newClientForm, setNewClientForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-  });
+  const [latestInvoiceId, setLatestInvoiceId] = useState("");
+  const [newClientForm, setNewClientForm] = useState({ name: "", phone: "", email: "" });
 
-  const selectedClient = clients.find((client) => client.id === selectedClientId);
+  // Set first client as selected when data loads
+  useMemo(() => {
+    if (clients.length > 0 && !selectedClientId) {
+      setSelectedClientId(clients[0].id);
+    }
+  }, [clients, selectedClientId]);
+
+  const selectedClient = clients.find((c: any) => c.id === selectedClientId);
   const grandTotal = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity * item.price, 0),
     [items],
   );
 
-  const updateItem = (
-    itemId: string,
-    key: "name" | "quantity" | "price",
-    value: string,
-  ) => {
+  const updateItem = (itemId: string, key: "name" | "quantity" | "price", value: string) => {
     setItems((prev) =>
       prev.map((item) => {
         if (item.id !== itemId) return item;
@@ -56,63 +61,52 @@ const NewInvoicePage = () => {
     );
   };
 
-  const createClient = () => {
+  const handleCreateClient = async () => {
     if (!newClientForm.name || !newClientForm.phone) {
-      toast({
-        title: "Missing fields",
-        description: "Name and phone are required to create a client.",
-        variant: "destructive",
-      });
+      toast.error("Name and phone are required");
       return;
     }
-
-    const newClient: Client = {
-      id: `c-${Date.now()}`,
-      name: newClientForm.name,
-      phone: newClientForm.phone,
-      email: newClientForm.email || "na@na.com",
-      company: "New Client",
-      address: "Not set",
-      status: "active",
-      totalPurchase: 0,
-      outstandingDue: 0,
-    };
-    setClients((prev) => [newClient, ...prev]);
-    setSelectedClientId(newClient.id);
-    setNewClientForm({ name: "", phone: "", email: "" });
-    setOpenCreateClient(false);
-    toast({
-      title: "Client created",
-      description: `${newClient.name} is ready for invoice creation.`,
-    });
+    try {
+      const newClient: any = await createClientApi({
+        name: newClientForm.name,
+        phone: newClientForm.phone,
+        email: newClientForm.email || "na@na.com",
+        company: "New Client",
+        address: "Not set",
+      }).unwrap();
+      setSelectedClientId(newClient.data?.id || newClient.id);
+      setNewClientForm({ name: "", phone: "", email: "" });
+      setOpenCreateClient(false);
+      toast.success(`${newClientForm.name} created and selected`);
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to create client");
+    }
   };
 
-  const handleSaveInvoice = () => {
+  const handleSaveInvoice = async () => {
     if (!selectedClientId) {
-      toast({
-        title: "Select client first",
-        description: "Please select or create a client before saving invoice.",
-        variant: "destructive",
-      });
+      toast.error("Please select a client first");
       return;
     }
-
     if (items.every((item) => item.quantity <= 0 || item.price <= 0)) {
-      toast({
-        title: "Invoice items incomplete",
-        description: "Add at least one item with quantity and price.",
-        variant: "destructive",
-      });
+      toast.error("Add at least one item with quantity and price");
       return;
     }
 
-    const generatedId = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
-    setLatestInvoiceId(generatedId);
-    setOpenShare(true);
-    toast({
-      title: "Invoice saved",
-      description: `${generatedId} is created successfully.`,
-    });
+    try {
+      const result: any = await createInvoice({
+        clientId: selectedClientId,
+        note: invoiceNote || undefined,
+        items: items.map(({ name, quantity, price }) => ({ name, quantity, price })),
+      }).unwrap();
+
+      const invoiceId = result.data?.invoiceNumber || result.invoiceNumber || "INV-SAVED";
+      setLatestInvoiceId(invoiceId);
+      setOpenShare(true);
+      toast.success(`Invoice ${invoiceId} created successfully`);
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to save invoice");
+    }
   };
 
   return (
@@ -161,7 +155,9 @@ const NewInvoicePage = () => {
           <div className="flex flex-col items-end gap-2 rounded-md bg-muted/40 p-4">
             <p className="text-sm text-muted-foreground">Grand Total</p>
             <p className="text-2xl font-bold">{formatCurrency(grandTotal, symbol)}</p>
-            <Button onClick={handleSaveInvoice}>Save Invoice</Button>
+            <Button onClick={handleSaveInvoice} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Invoice"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -171,7 +167,7 @@ const NewInvoicePage = () => {
         form={newClientForm}
         onClose={() => setOpenCreateClient(false)}
         onChange={(field, value) => setNewClientForm((prev) => ({ ...prev, [field]: value }))}
-        onCreate={createClient}
+        onCreate={handleCreateClient}
       />
 
       <ShareInvoiceModal

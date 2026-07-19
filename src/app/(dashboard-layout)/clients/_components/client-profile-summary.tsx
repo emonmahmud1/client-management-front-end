@@ -1,17 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
-import { Client } from "@/types/domain";
 
 type ClientProfileSummaryProps = {
-  client: Client;
+  client: any;
   currencySymbol: "৳" | "$";
 };
 
-export function ClientProfileSummary({
-  client,
-  currencySymbol,
-}: ClientProfileSummaryProps) {
+export function ClientProfileSummary({ client, currencySymbol }: ClientProfileSummaryProps) {
   return (
     <Card>
       <CardHeader>
@@ -25,21 +21,22 @@ export function ClientProfileSummary({
         <div>
           <p>{client.phone}</p>
           <p>{client.email}</p>
+          <p className="text-xs text-muted-foreground mt-1">{client.address}</p>
         </div>
         <div className="rounded-md bg-muted p-3">
           <p className="text-xs text-muted-foreground">Lifetime Purchase</p>
           <p className="text-lg font-semibold">
-            {formatCurrency(client.totalPurchase, currencySymbol)}
+            {formatCurrency(client.totalPurchase ?? 0, currencySymbol)}
           </p>
         </div>
         <div className="rounded-md border border-red-200 bg-red-50 p-3">
           <p className="text-xs text-red-600">Current Outstanding Due</p>
           <p className="text-lg font-bold text-red-600">
-            {formatCurrency(client.outstandingDue, currencySymbol)}
+            {formatCurrency(client.outstandingDue ?? 0, currencySymbol)}
           </p>
         </div>
-        <Badge tone={client.status === "active" ? "success" : "danger"}>
-          {client.status === "active" ? "Active" : "Overdue Due"}
+        <Badge variant={client.status === "ACTIVE" ? "default" : "destructive"}>
+          {client.status === "ACTIVE" ? "Active" : client.status === "OVERDUE" ? "Overdue" : client.status}
         </Badge>
       </CardContent>
     </Card>

@@ -11,74 +11,59 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import { ExpenseCategory, ExpenseRecord } from "@/types/domain";
+import { toast } from "sonner";
+import { useCreateExpenseMutation } from "@/store/endpoints/expenses-endpoints";
 
 type AddExpenseDialogProps = {
   open: boolean;
   onClose: () => void;
-  onAdd: (expense: ExpenseRecord) => void;
 };
 
-const CATEGORIES: ExpenseCategory[] = [
-  "Marketing",
-  "Operations",
-  "Logistics",
-  "Salary",
-  "Utilities",
-];
-const METHODS = ["Cash", "bKash", "Bank"] as const;
+// Must match backend ExpenseCategory enum
+const CATEGORIES = ["MARKETING", "OPERATIONS", "LOGISTICS", "SALARY", "UTILITIES"] as const;
+// Must match backend PaymentMethod enum
+const METHODS = ["CASH", "BKASH", "BANK"] as const;
 
 const today = () => new Date().toISOString().split("T")[0];
 
 const emptyForm = () => ({
   title: "",
-  category: "Operations" as ExpenseCategory,
+  category: "OPERATIONS" as typeof CATEGORIES[number],
   amount: "",
   date: today(),
-  paymentMethod: "Cash" as "Cash" | "bKash" | "Bank",
+  paymentMethod: "CASH" as typeof METHODS[number],
 });
 
-export function AddExpenseDialog({ open, onClose, onAdd }: AddExpenseDialogProps) {
+export function AddExpenseDialog({ open, onClose }: AddExpenseDialogProps) {
   const [form, setForm] = useState(emptyForm);
+  const [createExpense, { isLoading }] = useCreateExpenseMutation();
 
   const set = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleAdd = () => {
-    if (!form.title.trim()) {
-      toast({ title: "Title required", variant: "destructive" });
-      return;
-    }
-    if (!form.amount || Number(form.amount) <= 0) {
-      toast({ title: "Enter a valid amount", variant: "destructive" });
-      return;
-    }
-    if (!form.date) {
-      toast({ title: "Date required", variant: "destructive" });
-      return;
-    }
+  const handleAdd = async () => {
+    if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (!form.amount || Number(form.amount) <= 0) { toast.error("Enter a valid amount"); return; }
+    if (!form.date) { toast.error("Date is required"); return; }
 
-    const expense: ExpenseRecord = {
-      id: `EXP-${Math.floor(100 + Math.random() * 900)}`,
-      title: form.title.trim(),
-      category: form.category,
-      amount: Number(form.amount),
-      date: form.date,
-      paymentMethod: form.paymentMethod,
-      status: "pending",
-    };
-
-    onAdd(expense);
-    setForm(emptyForm);
-    onClose();
-    toast({ title: "Expense added", description: `${expense.title} recorded as pending.` });
+    try {
+      await createExpense({
+        title: form.title.trim(),
+        category: form.category,
+        amount: Number(form.amount),
+        date: form.date,
+        paymentMethod: form.paymentMethod,
+        status: "PENDING",
+      }).unwrap();
+      toast.success(`${form.title} recorded as pending`);
+      setForm(emptyForm);
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to add expense");
+    }
   };
 
-  const handleClose = () => {
-    setForm(emptyForm);
-    onClose();
-  };
+  const handleClose = () => { setForm(emptyForm); onClose(); };
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
@@ -111,9 +96,7 @@ export function AddExpenseDialog({ open, onClose, onAdd }: AddExpenseDialogProps
                 className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
@@ -128,9 +111,7 @@ export function AddExpenseDialog({ open, onClose, onAdd }: AddExpenseDialogProps
                 className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {METHODS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
+                  <option key={m} value={m}>{m}</option>
                 ))}
               </select>
             </div>
@@ -164,10 +145,10 @@ export function AddExpenseDialog({ open, onClose, onAdd }: AddExpenseDialogProps
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>Cancel</Button>
+          <Button onClick={handleAdd} disabled={isLoading}>
+            {isLoading ? "Adding..." : "Add Expense"}
           </Button>
-          <Button onClick={handleAdd}>Add Expense</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

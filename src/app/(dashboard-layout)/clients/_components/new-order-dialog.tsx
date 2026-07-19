@@ -14,13 +14,13 @@ import { Input } from "@/components/ui/input";
 import { InvoiceItemsTable, InvoiceItem } from "@/app/(dashboard-layout)/invoices/new/_components/invoice-items-table";
 import { ShareInvoiceModal } from "@/app/(dashboard-layout)/invoices/new/_components/share-invoice-modal";
 import { formatCurrency } from "@/lib/format";
-import { toast } from "@/hooks/use-toast";
-import { Client } from "@/types/domain";
+import { toast } from "sonner";
 import { useAppSelector } from "@/store/hooks";
+import { useCreateInvoiceMutation } from "@/store/endpoints/invoices-endpoints";
 
 type NewOrderDialogProps = {
   open: boolean;
-  client: Client;
+  client: any;
   onClose: () => void;
 };
 
@@ -33,6 +33,7 @@ const createItem = (): InvoiceItem => ({
 
 export function NewOrderDialog({ open, client, onClose }: NewOrderDialogProps) {
   const symbol = useAppSelector((state) => state.app.currencySymbol);
+  const [createInvoice, { isLoading }] = useCreateInvoiceMutation();
   const [items, setItems] = useState<InvoiceItem[]>([createItem()]);
   const [invoiceNote, setInvoiceNote] = useState("");
   const [openShare, setOpenShare] = useState(false);
@@ -43,11 +44,7 @@ export function NewOrderDialog({ open, client, onClose }: NewOrderDialogProps) {
     [items],
   );
 
-  const updateItem = (
-    itemId: string,
-    key: "name" | "quantity" | "price",
-    value: string,
-  ) => {
+  const updateItem = (itemId: string, key: "name" | "quantity" | "price", value: string) => {
     setItems((prev) =>
       prev.map((item) => {
         if (item.id !== itemId) return item;
@@ -57,20 +54,26 @@ export function NewOrderDialog({ open, client, onClose }: NewOrderDialogProps) {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (items.every((item) => item.quantity <= 0 || item.price <= 0)) {
-      toast({
-        title: "Invoice items incomplete",
-        description: "Add at least one item with quantity and price.",
-        variant: "destructive",
-      });
+      toast.error("Add at least one item with quantity and price");
       return;
     }
 
-    const generatedId = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
-    setInvoiceId(generatedId);
-    setOpenShare(true);
-    toast({ title: "Invoice created", description: `${generatedId} saved for ${client.name}.` });
+    try {
+      const result: any = await createInvoice({
+        clientId: client.id,
+        note: invoiceNote || undefined,
+        items: items.map(({ name, quantity, price }) => ({ name, quantity, price })),
+      }).unwrap();
+
+      const generatedId = result.data?.invoiceNumber || result.invoiceNumber || "INV-SAVED";
+      setInvoiceId(generatedId);
+      setOpenShare(true);
+      toast.success(`Invoice ${generatedId} created for ${client.name}`);
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to create invoice");
+    }
   };
 
   const handleClose = () => {
@@ -84,9 +87,9 @@ export function NewOrderDialog({ open, client, onClose }: NewOrderDialogProps) {
       <Dialog open={open && !openShare} onOpenChange={(next) => !next && handleClose()}>
         <DialogContent className="max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>New Order for {client.name}</DialogTitle>
+            <DialogTitle>New Order for {client?.name}</DialogTitle>
             <DialogDescription>
-              {client.company} · {client.phone}
+              {client?.company} · {client?.phone}
             </DialogDescription>
           </DialogHeader>
 
@@ -123,19 +126,19 @@ export function NewOrderDialog({ open, client, onClose }: NewOrderDialogProps) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
+            <Button variant="outline" onClick={handleClose} disabled={isLoading}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save & Create Invoice"}
             </Button>
-            <Button onClick={handleSave}>Save &amp; Create Invoice</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <ShareInvoiceModal
         open={openShare}
-        clientPhone={client.phone}
-        clientEmail={client.email}
-        clientName={client.name}
+        clientPhone={client?.phone ?? ""}
+        clientEmail={client?.email ?? ""}
+        clientName={client?.name ?? "Client"}
         invoiceId={invoiceId}
         onClose={() => {
           setOpenShare(false);

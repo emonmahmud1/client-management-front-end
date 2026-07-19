@@ -5,12 +5,26 @@ import { UserPlus } from "lucide-react";
 import { AddClientDialog } from "@/app/(dashboard-layout)/clients/_components/add-client-dialog";
 import { ClientsDirectoryTable } from "@/app/(dashboard-layout)/clients/_components/clients-directory-table";
 import { Button } from "@/components/ui/button";
-import { clients as initialClients } from "@/lib/mock-data/clients";
-import { Client } from "@/types/domain";
+import { useGetClientsQuery, useUpdateClientMutation } from "@/store/endpoints/clients-endpoints";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const ClientsPage = () => {
-  const [clients, setClients] = useState<Client[]>(initialClients);
   const [openAdd, setOpenAdd] = useState(false);
+  const { data: clients = [], isLoading } = useGetClientsQuery({});
+  const [updateClient] = useUpdateClientMutation();
+
+  const handleStatusToggle = async (id: string) => {
+    const client = clients.find((c: any) => c.id === id);
+    if (!client) return;
+    const newStatus = client.status === "ACTIVE" ? "OVERDUE" : "ACTIVE";
+    try {
+      await updateClient({ id, status: newStatus }).unwrap();
+      toast.success("Client status updated");
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -27,26 +41,18 @@ const ClientsPage = () => {
         </Button>
       </div>
 
-      <ClientsDirectoryTable
-        clients={clients}
-        onStatusToggle={(id) =>
-          setClients((prev) =>
-            prev.map((c) =>
-              c.id === id
-                ? { ...c, status: c.status === "active" ? "overdue" : "active" }
-                : c,
-            ),
-          )
-        }
-      />
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <ClientsDirectoryTable clients={clients} onStatusToggle={handleStatusToggle} />
+      )}
 
-      <AddClientDialog
-        open={openAdd}
-        onClose={() => setOpenAdd(false)}
-        onAdd={(client) => setClients((prev) => [client, ...prev])}
-      />
+      <AddClientDialog open={openAdd} onClose={() => setOpenAdd(false)} />
     </div>
   );
 };
 
 export default ClientsPage;
+

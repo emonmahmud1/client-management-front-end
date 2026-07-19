@@ -40,6 +40,15 @@ const LoginPage = () => {
   const dispatch = useDispatch();
   const [login, { isLoading }] = useLoginMutation();
 
+  // If already logged in, redirect to dashboard
+  React.useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const user = localStorage.getItem("activeUser");
+    if (token && user) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -50,20 +59,19 @@ const LoginPage = () => {
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
-      const response = await login(values).unwrap();
-      
-      // Dispatch credentials to redux state
+      const raw = await login(values).unwrap();
+      // Backend wraps response: { statusCode, success, message, data: { accessToken, user } }
+      const response = raw?.data ?? raw;
+
       dispatch(
         setCredentials({
           user: response.user,
           token: response.accessToken,
         })
       );
-      
+
       toast.success("Login successful!");
-      
-      // Redirect to dashboard
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error: any) {
       toast.error(
         error?.data?.message || "Invalid credentials. Please try again."

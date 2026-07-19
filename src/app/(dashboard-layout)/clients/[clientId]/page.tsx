@@ -2,17 +2,12 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Loader2 } from "lucide-react";
 import { ClientDetailsTabs } from "@/app/(dashboard-layout)/clients/_components/client-details-tabs";
 import { ClientProfileSummary } from "@/app/(dashboard-layout)/clients/_components/client-profile-summary";
 import { NewOrderDialog } from "@/app/(dashboard-layout)/clients/_components/new-order-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  clientInvoicesById,
-  clientNotesById,
-  clientPaymentsById,
-  clients,
-} from "@/lib/mock-data/clients";
+import { useGetClientByIdQuery } from "@/store/endpoints/clients-endpoints";
 import { useAppSelector } from "@/store/hooks";
 
 const ClientProfilePage = () => {
@@ -20,9 +15,19 @@ const ClientProfilePage = () => {
   const currencySymbol = useAppSelector((state) => state.app.currencySymbol);
   const [openOrder, setOpenOrder] = useState(false);
   const clientId = params.clientId;
-  const client = clients.find((item) => item.id === clientId);
 
-  if (!client) {
+  const { data: clientData, isLoading, isError } = useGetClientByIdQuery(clientId);
+  const client = clientData?.data || clientData;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isError || !client) {
     return (
       <p className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
         Client not found.
@@ -52,9 +57,7 @@ const ClientProfilePage = () => {
         <div className="lg:col-span-2">
           <ClientDetailsTabs
             currencySymbol={currencySymbol}
-            invoices={clientInvoicesById[clientId] ?? []}
-            payments={clientPaymentsById[clientId] ?? []}
-            note={clientNotesById[clientId] ?? ""}
+            clientId={clientId}
           />
         </div>
       </section>

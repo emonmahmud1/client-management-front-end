@@ -14,7 +14,7 @@ import { useAppSelector } from "@/store/hooks";
 type SortKey = "totalPurchase" | "outstandingDue";
 
 type ClientsDirectoryTableProps = {
-  clients: Client[];
+  clients: any[];
   onStatusToggle?: (clientId: string) => void;
 };
 
@@ -75,8 +75,8 @@ export function ClientsDirectoryTable({ clients, onStatusToggle }: ClientsDirect
                 <td className="px-3 py-2">{formatCurrency(client.totalPurchase, symbol)}</td>
                 <td className="px-3 py-2">{formatCurrency(client.outstandingDue, symbol)}</td>
                 <td className="px-3 py-2">
-                  <Badge tone={client.status === "active" ? "success" : "danger"}>
-                    {client.status === "active" ? "Active" : "Overdue Due"}
+                  <Badge variant={client.status === "ACTIVE" ? "default" : "destructive"}>
+                    {client.status === "ACTIVE" ? "Active" : client.status === "OVERDUE" ? "Overdue" : client.status}
                   </Badge>
                 </td>
                 <td className="px-3 py-2">
@@ -85,9 +85,9 @@ export function ClientsDirectoryTable({ clients, onStatusToggle }: ClientsDirect
                       variant="outline"
                       size="icon"
                       onClick={() => onStatusToggle?.(client.id)}
-                      title={client.status === "active" ? "Mark as Overdue" : "Mark as Active"}
+                      title={client.status === "ACTIVE" ? "Mark as Overdue" : "Mark as Active"}
                     >
-                      {client.status === "active" ? (
+                      {client.status === "ACTIVE" ? (
                         <AlertTriangle className="size-4 text-orange-500" />
                       ) : (
                         <CheckCircle2 className="size-4 text-emerald-600" />

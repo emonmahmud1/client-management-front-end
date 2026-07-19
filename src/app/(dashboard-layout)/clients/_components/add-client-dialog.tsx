@@ -11,13 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import { Client } from "@/types/domain";
+import { toast } from "sonner";
+import { useCreateClientMutation } from "@/store/endpoints/clients-endpoints";
 
 type AddClientDialogProps = {
   open: boolean;
   onClose: () => void;
-  onAdd: (client: Client) => void;
 };
 
 const emptyForm = () => ({
@@ -28,44 +27,36 @@ const emptyForm = () => ({
   address: "",
 });
 
-export function AddClientDialog({ open, onClose, onAdd }: AddClientDialogProps) {
+export function AddClientDialog({ open, onClose }: AddClientDialogProps) {
   const [form, setForm] = useState(emptyForm);
+  const [createClient, { isLoading }] = useCreateClientMutation();
 
   const set = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleAdd = () => {
-    if (!form.name.trim()) {
-      toast({ title: "Name required", variant: "destructive" });
-      return;
-    }
-    if (!form.phone.trim()) {
-      toast({ title: "Phone / WhatsApp number required", variant: "destructive" });
-      return;
-    }
+  const handleAdd = async () => {
+    if (!form.name.trim()) { toast.error("Name is required"); return; }
+    if (!form.phone.trim()) { toast.error("Phone is required"); return; }
+    if (!form.email.trim()) { toast.error("Email is required"); return; }
+    if (!form.address.trim()) { toast.error("Address is required"); return; }
 
-    const client: Client = {
-      id: `c-${Date.now()}`,
-      name: form.name.trim(),
-      company: form.company.trim() || "—",
-      phone: form.phone.trim(),
-      email: form.email.trim() || "—",
-      address: form.address.trim() || "—",
-      status: "active",
-      totalPurchase: 0,
-      outstandingDue: 0,
-    };
-
-    onAdd(client);
-    setForm(emptyForm);
-    onClose();
-    toast({ title: "Client added", description: `${client.name} is now in the directory.` });
+    try {
+      await createClient({
+        name: form.name.trim(),
+        company: form.company.trim() || "—",
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        address: form.address.trim(),
+      }).unwrap();
+      toast.success(`${form.name} added to directory`);
+      setForm(emptyForm);
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to add client");
+    }
   };
 
-  const handleClose = () => {
-    setForm(emptyForm);
-    onClose();
-  };
+  const handleClose = () => { setForm(emptyForm); onClose(); };
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
@@ -73,7 +64,7 @@ export function AddClientDialog({ open, onClose, onAdd }: AddClientDialogProps) 
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
           <DialogDescription>
-            Add client details to the directory. Name and phone are required.
+            Name, phone, email and address are required.
           </DialogDescription>
         </DialogHeader>
 
@@ -83,21 +74,11 @@ export function AddClientDialog({ open, onClose, onAdd }: AddClientDialogProps) 
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                 Full Name <span className="text-destructive">*</span>
               </label>
-              <Input
-                placeholder="e.g. Rakib Ahmed"
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-              />
+              <Input placeholder="e.g. Rakib Ahmed" value={form.name} onChange={(e) => set("name", e.target.value)} />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Company
-              </label>
-              <Input
-                placeholder="e.g. Rakib Furnishings"
-                value={form.company}
-                onChange={(e) => set("company", e.target.value)}
-              />
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company</label>
+              <Input placeholder="e.g. Rakib Furnishings" value={form.company} onChange={(e) => set("company", e.target.value)} />
             </div>
           </div>
 
@@ -106,42 +87,29 @@ export function AddClientDialog({ open, onClose, onAdd }: AddClientDialogProps) 
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                 Phone / WhatsApp <span className="text-destructive">*</span>
               </label>
-              <Input
-                placeholder="+8801711000011"
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-              />
+              <Input placeholder="+8801711000011" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Email
+                Email <span className="text-destructive">*</span>
               </label>
-              <Input
-                type="email"
-                placeholder="client@email.com"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-              />
+              <Input type="email" placeholder="client@email.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
             </div>
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Address
+              Address <span className="text-destructive">*</span>
             </label>
-            <Input
-              placeholder="e.g. Dhanmondi, Dhaka"
-              value={form.address}
-              onChange={(e) => set("address", e.target.value)}
-            />
+            <Input placeholder="e.g. Dhanmondi, Dhaka" value={form.address} onChange={(e) => set("address", e.target.value)} />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>Cancel</Button>
+          <Button onClick={handleAdd} disabled={isLoading}>
+            {isLoading ? "Adding..." : "Add Client"}
           </Button>
-          <Button onClick={handleAdd}>Add Client</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
