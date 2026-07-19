@@ -108,7 +108,7 @@ export function ExpenseListTable() {
                     <td className="px-3 py-2">{expense.paymentMethod}</td>
                     <td className="px-3 py-2">{formatCurrency(expense.amount, symbol)}</td>
                     <td className="px-3 py-2">
-                      <Badge variant={expense.status === "PAID" ? "default" : "secondary"}>
+                      <Badge tone={expense.status === "PAID" ? "success" : "default"}>
                         {expense.status}
                       </Badge>
                     </td>
