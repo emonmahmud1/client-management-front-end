@@ -4,31 +4,28 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useGetInvoicesQuery } from "@/store/endpoints/invoices-endpoints";
+import { InvoicePreviewDialog } from "./invoice-preview-dialog";
 import { Loader2, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useDeleteInvoiceMutation } from "@/store/endpoints/invoices-endpoints";
 import { toast } from "sonner";
 
 type ClientDetailsTabsProps = {
   currencySymbol: "৳" | "$";
-  clientId: string;
+  client: any;
 };
 
 type TabId = "invoices" | "payments" | "notes";
 
-export function ClientDetailsTabs({ currencySymbol, clientId }: ClientDetailsTabsProps) {
+export function ClientDetailsTabs({ currencySymbol, client }: ClientDetailsTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>("invoices");
-  const { data: allInvoices = [], isLoading } = useGetInvoicesQuery({});
   const [deleteInvoice] = useDeleteInvoiceMutation();
 
-  // Filter invoices for this specific client
-  const invoices: any[] = Array.isArray(allInvoices)
-    ? allInvoices.filter((inv: any) => inv.clientId === clientId)
-    : [];
-  const payments: any[] = invoices.flatMap((inv: any) => inv.payments ?? []);
+  const invoices = client?.invoices || [];
+  const payments = client?.payments || [];
 
   const handleDeleteInvoice = async (id: string) => {
     try {
@@ -65,13 +62,9 @@ export function ClientDetailsTabs({ currencySymbol, clientId }: ClientDetailsTab
           ))}
         </div>
 
-        {isLoading && (
-          <div className="flex h-32 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        )}
 
-        {!isLoading && activeTab === "invoices" && (
+
+        {activeTab === "invoices" && (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
@@ -101,11 +94,16 @@ export function ClientDetailsTabs({ currencySymbol, clientId }: ClientDetailsTab
                       <td className="px-3 py-2">{new Date(invoice.createdAt).toLocaleDateString()}</td>
                       <td className="px-3 py-2">{formatCurrency(amount, currencySymbol)}</td>
                       <td className="px-3 py-2">
-                        <Badge variant={invoice.status === "PAID" ? "default" : invoice.status === "OVERDUE" ? "destructive" : "secondary"}>
+                        <Badge tone={invoice.status === "PAID" ? "success" : invoice.status === "OVERDUE" ? "danger" : "default"}>
                           {invoice.status}
                         </Badge>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 flex items-center gap-2">
+                        <InvoicePreviewDialog 
+                          invoice={invoice} 
+                          client={client} 
+                          currencySymbol={currencySymbol} 
+                        />
                         <Button
                           variant="outline"
                           size="icon"
@@ -123,7 +121,7 @@ export function ClientDetailsTabs({ currencySymbol, clientId }: ClientDetailsTab
           </div>
         )}
 
-        {!isLoading && activeTab === "payments" && (
+        {activeTab === "payments" && (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
